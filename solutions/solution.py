@@ -22,7 +22,7 @@ class Solution:
             elif not root.right:
                 return root.left
 
-            # Node with two children: find inorder successor.
+            # Node with two children: find inorder successor
             succ = self.findMin(root.right)
             root.val = succ.val
             root.right = self.deleteNode(root.right, succ.val)
