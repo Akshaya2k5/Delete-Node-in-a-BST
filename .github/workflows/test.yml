@@ -102,7 +102,7 @@ jobs:
           fi
 
           if [ -f tests/test.c ]; then
-            gcc tests/test.c solutions/solution.c -o test_runner
+            gcc tests/test.c -o test_runner
             ./test_runner | tee -a test_results.log
           else
             echo "No C test file found."
