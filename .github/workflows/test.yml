@@ -111,6 +111,8 @@ jobs:
       - name: Compile and Run C++ Tests
         if: env.LANGUAGE == 'C++'
         run: |
+          echo "Changed files: $CHANGED_FILES"
+          # Assume only one changed solution file; rename if needed
           for file in $CHANGED_FILES; do
             if [ "$(realpath "$file")" != "$(realpath solutions/solution.cpp)" ]; then
               mv "$file" solutions/solution.cpp
@@ -124,8 +126,15 @@ jobs:
 
           if [ -f tests/test.cpp ]; then
             echo "Compiling with g++ -std=c++17..."
-            sed -i '1i #include <unordered_map>' tests/test.cpp
+            # Comment out or remove the sed line unless you need it
+            # sed -i '1i #include <unordered_map>' tests/test.cpp
+
             g++ -std=c++17 tests/test.cpp -o test_runner_cpp
+            if [ $? -ne 0 ]; then
+              echo "Compilation failed"
+              exit 1
+            fi
+
             echo "Running C++ Test Cases..."
             ./test_runner_cpp | tee -a test_results.log
           else
