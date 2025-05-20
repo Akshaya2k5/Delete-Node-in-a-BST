@@ -18,7 +18,7 @@ struct TreeNode* newNode(int val) {
     return node;
 }
 
-// Find the minimum value node in a subtree
+// Find the minimum value node in a subtree.
 struct TreeNode* findMin(struct TreeNode* node) {
     while (node && node->left != NULL) {
         node = node->left;
