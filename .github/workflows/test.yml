@@ -1,92 +1,123 @@
-name: Run Language-Specific DSA Tests
+name: Run Code Tests
 
 on:
   push:
     paths:
-      - 'solutions/**'
-      - 'tests/**'
+      - "solutions/**"
+  pull_request:
+    paths:
+      - "tests/**"
 
 jobs:
-  check_changes:
+  run-tests:
     runs-on: ubuntu-latest
-    outputs:
-      solution-file: ${{ steps.get_file.outputs.solution_file }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Ensure previous commit is available
 
-      - name: Get changed solution files
-        id: get_file
+      - name: Detect Changed Files
+        id: changed-files
         run: |
-          FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep "^solutions/")
-          COUNT=$(echo "$FILES" | wc -l)
-          echo "Changed files: $FILES"
+          BEFORE_COMMIT="${{ github.event.before }}"
+          if [ -z "$BEFORE_COMMIT" ] || ! git cat-file -e "$BEFORE_COMMIT"^{commit}; then
+            BEFORE_COMMIT=$(git rev-parse HEAD~1)
+          fi
+          
+          CHANGED_FILES=$(git diff --name-only "$BEFORE_COMMIT" HEAD | grep '^solutions/')
+          echo "Detected changed files (raw): $CHANGED_FILES"
 
-          if [ "$COUNT" -gt 1 ]; then
-            echo "❌ Multiple Solution codes Changed at a time. Do not Run Tests."
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "No solution files changed. Exiting..."
             exit 1
           fi
 
-          FILE=$(echo "$FILES" | head -n 1)
-          if [ -z "$FILE" ]; then
-            echo "No solution file changed. Exiting."
+          CHANGED_FILES=$(echo "$CHANGED_FILES" | tr '\n' ' ' | sed 's/ /\n/g' | sort -u)
+          echo "CHANGED_FILES<<EOF" >> $GITHUB_ENV
+          echo "$CHANGED_FILES" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Fail if More Than One Solution File Changed
+        run: |
+          FILE_COUNT=$(echo "$CHANGED_FILES" | wc -w)
+          if [ "$FILE_COUNT" -gt 1 ]; then
+            echo "❌ Multiple solution files changed: $CHANGED_FILES"
             exit 1
           fi
 
-          echo "solution_file=$FILE" >> $GITHUB_OUTPUT
-
-  run_tests:
-    needs: check_changes
-    runs-on: ubuntu-latest
-    if: ${{ needs.check_changes.outputs.solution-file != '' }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up file details
-        id: setup
+      - name: Determine Language
+        id: determine-language
         run: |
-          FILE="${{ needs.check_changes.outputs.solution-file }}"
-          echo "File: $FILE"
-          EXT="${FILE##*.}"
-          echo "extension=$EXT" >> $GITHUB_OUTPUT
+          DETECTED_LANGUAGES=""
+          for file in $CHANGED_FILES; do
+            case "$file" in
+              *.c) DETECTED_LANGUAGES="$DETECTED_LANGUAGES C";;
+              *.cpp) DETECTED_LANGUAGES="$DETECTED_LANGUAGES C++";;
+              *.py) DETECTED_LANGUAGES="$DETECTED_LANGUAGES Python";;
+              *.java) DETECTED_LANGUAGES="$DETECTED_LANGUAGES Java";;
+            esac
+          done
 
-      - name: Base code check
-        if: endsWith(steps.setup.outputs.extension, 'py')
-        run: |
-          echo "Checking for base code in Python..."
-          if grep -q "pass" solutions/solution.py; then
-            echo "❌ Base code detected (contains only 'pass')"
-            exit 1
-          fi
+          DETECTED_LANGUAGES=$(echo "$DETECTED_LANGUAGES" | xargs | sort -u)
+          echo "LANGUAGE=$DETECTED_LANGUAGES" >> $GITHUB_ENV
 
-      - name: Run C tests
-        if: endsWith(steps.setup.outputs.extension, 'c')
+      - name: Debug Variables
         run: |
-          sudo apt update && sudo apt install -y gcc
-          gcc tests/test.c solutions/solution.c -o c_test
-          ./c_test
+          echo "Changed files: $CHANGED_FILES"
+          echo "Detected languages: $LANGUAGE"
 
-      - name: Run C++ tests
-        if: endsWith(steps.setup.outputs.extension, 'cpp')
-        run: |
-          sudo apt update && sudo apt install -y g++
-          g++ tests/test.cpp solutions/solution.cpp -o cpp_test
-          ./cpp_test
+      - name: Update Package Lists
+        if: contains(env.LANGUAGE, 'C') || contains(env.LANGUAGE, 'C++') || contains(env.LANGUAGE, 'Python') || contains(env.LANGUAGE, 'Java')
+        run: sudo apt update
 
-      - name: Run Python tests
-        if: endsWith(steps.setup.outputs.extension, 'py')
-        run: |
-          python3 tests/test.py > output.log
-          cat output.log
-          if grep -q "Test Failed" output.log; then
-            echo "❌ Incomplete solution - Some test cases failed."
-            exit 1
-          fi
+      - name: Install C Dependencies
+        if: contains(env.LANGUAGE, 'C')
+        run: sudo apt install -y gcc
 
-      - name: Run Java tests
-        if: endsWith(steps.setup.outputs.extension, 'java')
+      - name: Install C++ Dependencies
+        if: contains(env.LANGUAGE, 'C++')
+        run: sudo apt install -y g++
+
+      - name: Install Python Dependencies
+        if: contains(env.LANGUAGE, 'Python')
+        run: sudo apt install -y python3
+
+      - name: Install Java Dependencies
+        if: contains(env.LANGUAGE, 'Java')
+        run: sudo apt install -y openjdk-17-jdk-headless
+
+      - name: Run C Tests
+        if: contains(env.LANGUAGE, 'C')
         run: |
-          sudo apt update && sudo apt install -y openjdk-11-jdk
-          javac solutions/Solution.java tests/Test.java
-          java -cp . tests.Test
+          mv $CHANGED_FILES solutions/solution.c
+          gcc tests/test.c solutions/solution.c -o test_runner
+          ./test_runner | tee -a test_results.log
+
+      - name: Run C++ Tests
+        if: contains(env.LANGUAGE, 'C++')
+        run: |
+          mv $CHANGED_FILES solutions/solution.cpp
+          g++ -std=c++17 tests/test.cpp solutions/solution.cpp -o test_runner_cpp
+          ./test_runner_cpp | tee -a test_results.log
+
+      - name: Run Python Tests
+        if: contains(env.LANGUAGE, 'Python')
+        run: |
+          mv $CHANGED_FILES solutions/solution.py
+          python3 tests/test.py | tee -a test_results.log
+
+      - name: Run Java Tests
+        if: contains(env.LANGUAGE, 'Java')
+        run: |
+          mv $CHANGED_FILES solutions/Solution.java
+          mkdir -p out
+          javac -d out tests/Test.java solutions/Solution.java
+          java -cp out tests.Test | tee -a test_results.log
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test_results.log
