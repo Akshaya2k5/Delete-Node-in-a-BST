@@ -80,13 +80,12 @@ jobs:
           fi
 
       - name: Compile and Run C++ Tests
-        if: env.LANGUAGE == 'C++'
+        if: contains(env.LANGUAGE, 'C++')
         run: |
+          set -e
           for file in $CHANGED_FILES; do
             if [ "$(realpath "$file")" != "$(realpath solutions/solution.cpp)" ]; then
               mv "$file" solutions/solution.cpp
-            else
-              echo "File $file is already solutions/solution.cpp, skipping move."
             fi
           done
 
@@ -102,14 +101,16 @@ jobs:
             ./test_runner_cpp | tee -a test_results.log
           else
             echo "No C++ test file found."
+            exit 1
           fi
 
       - name: Run Python Tests
-        if: contains(env.LANGUAGE, 'Python')
+        if: env.LANGUAGE == 'Python'
         run: |
+          set -e
           for file in $CHANGED_FILES; do
             if [ "$(realpath "$file")" != "$(realpath solutions/solution.py)" ]; then
-              mv "$file" solutions/solution.py || echo "File is already in place, skipping move."
+              mv "$file" solutions/solution.py
             fi
           done
 
@@ -120,9 +121,11 @@ jobs:
 
           if [ -f tests/test.py ]; then
             echo "Running Python Test Cases..."
-            python3 -m tests.test | tee -a test_results.log
+            # Run python with solutions in PYTHONPATH so imports work
+            PYTHONPATH=$(pwd)/solutions python3 tests/test.py | tee -a test_results.log
           else
             echo "No Python test file found."
+            exit 1
           fi
 
       - name: Compile and Run Java Tests
