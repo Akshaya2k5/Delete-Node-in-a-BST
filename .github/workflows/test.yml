@@ -124,7 +124,7 @@ jobs:
 
           if [ -f tests/test.cpp ]; then
             echo "Compiling with g++ -std=c++17..."
-            g++ -std=c++17 solutions/solution.cpp tests/test.cpp -o test_runner_cpp
+            g++ -std=c++17 tests/test.cpp -o test_runner_cpp
             echo "Running C++ Test Cases..."
             ./test_runner_cpp | tee -a test_results.log
           else
