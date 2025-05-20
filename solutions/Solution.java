@@ -22,7 +22,7 @@ public class Solution {
         } else if (key > root.val) {
             root.right = deleteNode(root.right, key);
         } else {
-            // Node found.
+            // Node found
             if (root.left == null) return root.right;
             else if (root.right == null) return root.left;
             else {
