@@ -1,0 +1,92 @@
+name: Run Language-Specific DSA Tests
+
+on:
+  push:
+    paths:
+      - 'solutions/**'
+      - 'tests/**'
+
+jobs:
+  check_changes:
+    runs-on: ubuntu-latest
+    outputs:
+      solution-file: ${{ steps.get_file.outputs.solution_file }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Get changed solution files
+        id: get_file
+        run: |
+          FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep "^solutions/")
+          COUNT=$(echo "$FILES" | wc -l)
+          echo "Changed files: $FILES"
+
+          if [ "$COUNT" -gt 1 ]; then
+            echo "❌ Multiple Solution codes Changed at a time. Do not Run Tests."
+            exit 1
+          fi
+
+          FILE=$(echo "$FILES" | head -n 1)
+          if [ -z "$FILE" ]; then
+            echo "No solution file changed. Exiting."
+            exit 1
+          fi
+
+          echo "solution_file=$FILE" >> $GITHUB_OUTPUT
+
+  run_tests:
+    needs: check_changes
+    runs-on: ubuntu-latest
+    if: ${{ needs.check_changes.outputs.solution-file != '' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up file details
+        id: setup
+        run: |
+          FILE="${{ needs.check_changes.outputs.solution-file }}"
+          echo "File: $FILE"
+          EXT="${FILE##*.}"
+          echo "extension=$EXT" >> $GITHUB_OUTPUT
+
+      - name: Base code check
+        if: endsWith(steps.setup.outputs.extension, 'py')
+        run: |
+          echo "Checking for base code in Python..."
+          if grep -q "pass" solutions/solution.py; then
+            echo "❌ Base code detected (contains only 'pass')"
+            exit 1
+          fi
+
+      - name: Run C tests
+        if: endsWith(steps.setup.outputs.extension, 'c')
+        run: |
+          sudo apt update && sudo apt install -y gcc
+          gcc tests/test.c solutions/solution.c -o c_test
+          ./c_test
+
+      - name: Run C++ tests
+        if: endsWith(steps.setup.outputs.extension, 'cpp')
+        run: |
+          sudo apt update && sudo apt install -y g++
+          g++ tests/test.cpp solutions/solution.cpp -o cpp_test
+          ./cpp_test
+
+      - name: Run Python tests
+        if: endsWith(steps.setup.outputs.extension, 'py')
+        run: |
+          python3 tests/test.py > output.log
+          cat output.log
+          if grep -q "Test Failed" output.log; then
+            echo "❌ Incomplete solution - Some test cases failed."
+            exit 1
+          fi
+
+      - name: Run Java tests
+        if: endsWith(steps.setup.outputs.extension, 'java')
+        run: |
+          sudo apt update && sudo apt install -y openjdk-11-jdk
+          javac solutions/Solution.java tests/Test.java
+          java -cp . tests.Test
