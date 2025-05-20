@@ -21,7 +21,7 @@ public:
         } else if (key > root->val) {
             root->right = deleteNode(root->right, key);
         } else {
-            // Node found.
+            // Node found
             if (!root->left) {
                 TreeNode* rightChild = root->right;
                 delete root;
