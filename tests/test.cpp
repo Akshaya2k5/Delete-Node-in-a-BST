@@ -61,5 +61,4 @@ int main() {
     // Edge Case - Delete from empty tree
     runTestCase("Edge Case - Empty Tree", {}, 5);
 
-    return 0;
 }
