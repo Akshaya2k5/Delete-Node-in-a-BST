@@ -108,9 +108,20 @@ jobs:
         if: env.LANGUAGE == 'Python'
         run: |
           for file in $CHANGED_FILES; do
-            mv "$file" solutions/solution.py
+            if [ "$(realpath "$file")" != "$(realpath solutions/solution.py)" ]; then
+              mv "$file" solutions/solution.py
+            else
+              echo "File $file is already solutions/solution.py, skipping move."
+            fi
           done
+
+          if [ ! -f solutions/solution.py ]; then
+            echo "❌ solution.py not found after rename. Exiting."
+            exit 1
+          fi
+
           if [ -f tests/test.py ]; then
+            echo "Running Python Test Cases..."
             python3 tests/test.py | tee -a test_results.log
           else
             echo "No Python test file found."
