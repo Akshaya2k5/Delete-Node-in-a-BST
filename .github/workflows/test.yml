@@ -87,8 +87,8 @@ jobs:
         if: contains(env.LANGUAGE, 'Java')
         run: sudo apt install -y openjdk-17-jdk-headless
 
-      - name: Run C Tests
-        if: contains(env.LANGUAGE, 'C')
+      - name:name: Run C Tests
+        if: contains(env.LANGUAGE, 'C') && !contains(env.LANGUAGE, 'C++')
         run: |
           for file in $CHANGED_FILES; do
             if [ "$(realpath "$file")" != "$(realpath solutions/solution.c)" ]; then
