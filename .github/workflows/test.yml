@@ -105,13 +105,11 @@ jobs:
           fi
 
       - name: Run Python Tests
-        if: env.LANGUAGE == 'Python'
+        if: contains(env.LANGUAGE, 'Python')
         run: |
           for file in $CHANGED_FILES; do
             if [ "$(realpath "$file")" != "$(realpath solutions/solution.py)" ]; then
-              mv "$file" solutions/solution.py
-            else
-              echo "File $file is already solutions/solution.py, skipping move."
+              mv "$file" solutions/solution.py || echo "File is already in place, skipping move."
             fi
           done
 
@@ -122,7 +120,7 @@ jobs:
 
           if [ -f tests/test.py ]; then
             echo "Running Python Test Cases..."
-            python3 tests/test.py | tee -a test_results.log
+            python3 -m tests.test | tee -a test_results.log
           else
             echo "No Python test file found."
           fi
