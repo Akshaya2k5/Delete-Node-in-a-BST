@@ -125,15 +125,27 @@ jobs:
             echo "No Python test file found."
           fi
 
-      - name: Run Java Tests
+      - name: Compile and Run Java Tests
         if: env.LANGUAGE == 'Java'
         run: |
           for file in $CHANGED_FILES; do
-            mv "$file" solutions/Solution.java
+            if [ "$(realpath "$file")" != "$(realpath solutions/Solution.java)" ]; then
+              mv "$file" solutions/Solution.java
+            else
+              echo "File solutions/Solution.java already in place, skipping move."
+            fi
           done
+
+          if [ ! -f solutions/Solution.java ]; then
+            echo "❌ Solution.java not found after rename. Exiting."
+            exit 1
+          fi
+
           if [ -f tests/Test.java ]; then
             mkdir -p out
+            echo "Compiling Java test cases..."
             javac -d out tests/Test.java solutions/Solution.java
+            echo "Running Java Test Cases..."
             java -cp out tests.Test | tee -a test_results.log
           else
             echo "No Java test file found."
