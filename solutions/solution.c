@@ -10,7 +10,7 @@ struct TreeNode {
     struct TreeNode *right;
 };
 
-// Helper to create new nodes
+// Helper to create new nodes.
 struct TreeNode* newNode(int val) {
     struct TreeNode* node = (struct TreeNode*)malloc(sizeof(struct TreeNode));
     node->val = val;
