@@ -26,7 +26,7 @@ struct TreeNode* findMin(struct TreeNode* node) {
     return node;
 }
 
-// Function to delete a node from BST
+// Function to delete a node from BST.
 struct TreeNode* deleteNode(struct TreeNode* root, int key) {
     if (root == NULL) return NULL;
 
