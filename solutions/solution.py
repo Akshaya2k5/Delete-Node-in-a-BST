@@ -16,7 +16,7 @@ class Solution:
         elif key > root.val:
             root.right = self.deleteNode(root.right, key)
         else:
-            # Node to delete found
+            # Node to delete found.
             if not root.left:
                 return root.right
             elif not root.right:
