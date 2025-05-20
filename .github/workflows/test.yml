@@ -90,30 +90,96 @@ jobs:
       - name: Run C Tests
         if: contains(env.LANGUAGE, 'C')
         run: |
-          mv $CHANGED_FILES solutions/solution.c
-          gcc tests/test.c solutions/solution.c -o test_runner
-          ./test_runner | tee -a test_results.log
+          for file in $CHANGED_FILES; do
+            if [ "$(realpath "$file")" != "$(realpath solutions/solution.c)" ]; then
+              mv "$file" solutions/solution.c
+            fi
+          done
 
-      - name: Run C++ Tests
-        if: contains(env.LANGUAGE, 'C++')
+          if [ ! -f solutions/solution.c ]; then
+            echo "❌ solution.c not found after rename. Exiting."
+            exit 1
+          fi
+
+          if [ -f tests/test.c ]; then
+            gcc tests/test.c solutions/solution.c -o test_runner
+            ./test_runner | tee -a test_results.log
+          else
+            echo "No C test file found."
+          fi
+
+      - name: Compile and Run C++ Tests
+        if: env.LANGUAGE == 'C++'
         run: |
-          mv $CHANGED_FILES solutions/solution.cpp
-          g++ -std=c++17 tests/test.cpp solutions/solution.cpp -o test_runner_cpp
-          ./test_runner_cpp | tee -a test_results.log
+          for file in $CHANGED_FILES; do
+            if [ "$(realpath "$file")" != "$(realpath solutions/solution.cpp)" ]; then
+              mv "$file" solutions/solution.cpp
+            fi
+          done
+
+          if [ ! -f solutions/solution.cpp ]; then
+            echo "❌ solution.cpp not found after rename. Exiting."
+            exit 1
+          fi
+
+          if [ -f tests/test.cpp ]; then
+            echo "Compiling with g++ -std=c++17..."
+            sed -i '1i #include <unordered_map>' tests/test.cpp
+            g++ -std=c++17 tests/test.cpp -o test_runner_cpp
+            echo "Running C++ Test Cases..."
+            ./test_runner_cpp | tee -a test_results.log
+          else
+            echo "No C++ test file found."
+          fi
 
       - name: Run Python Tests
-        if: contains(env.LANGUAGE, 'Python')
+        if: env.LANGUAGE == 'Python'
         run: |
-          mv $CHANGED_FILES solutions/solution.py
-          python3 tests/test.py | tee -a test_results.log
+          for file in $CHANGED_FILES; do
+            if [ "$(realpath "$file")" != "$(realpath solutions/solution.py)" ]; then
+              mv "$file" solutions/solution.py
+            fi
+          done
 
-      - name: Run Java Tests
-        if: contains(env.LANGUAGE, 'Java')
+          if [ ! -f solutions/solution.py ]; then
+            echo "❌ solution.py not found after rename. Exiting."
+            exit 1
+          fi
+
+          if [ -f tests/test.py ]; then
+            echo "Running Python Test Cases..."
+            python3 tests/test.py | tee -a test_results.log
+          else
+            echo "No Python test file found."
+          fi
+
+      - name: Compile and Run Java Tests
+        if: env.LANGUAGE == 'Java'
         run: |
-          mv $CHANGED_FILES solutions/Solution.java
-          mkdir -p out
-          javac -d out tests/Test.java solutions/Solution.java
-          java -cp out tests.Test | tee -a test_results.log
+          for file in $CHANGED_FILES; do
+            if [ "$(realpath "$file")" != "$(realpath solutions/Solution.java)" ]; then
+              mv "$file" solutions/Solution.java
+            fi
+          done
+
+          if [ ! -f solutions/Solution.java ]; then
+            echo "❌ Solution.java not found after rename. Exiting."
+            exit 1
+          fi
+
+          if [ -f tests/Test.java ]; then
+            mkdir -p out
+            echo "Compiling Java test cases..."
+            javac -d out tests/Test.java solutions/Solution.java
+            echo "Running Java Test Cases..."
+            java -cp out tests.Test | tee -a test_results.log
+          else
+            echo "No Java test file found."
+          fi
+
+      - name: Ensure test_results.log Exists
+        if: always()
+        run: touch test_results.log
 
       - name: Upload Test Results
         if: always()
