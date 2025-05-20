@@ -15,7 +15,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2  # Ensure previous commit is available
+          fetch-depth: 2
 
       - name: Detect Changed Files
         id: changed-files
@@ -24,19 +24,8 @@ jobs:
           if [ -z "$BEFORE_COMMIT" ] || ! git cat-file -e "$BEFORE_COMMIT"^{commit}; then
             BEFORE_COMMIT=$(git rev-parse HEAD~1)
           fi
-          
           CHANGED_FILES=$(git diff --name-only "$BEFORE_COMMIT" HEAD | grep '^solutions/')
-          echo "Detected changed files (raw): $CHANGED_FILES"
-
-          if [ -z "$CHANGED_FILES" ]; then
-            echo "No solution files changed. Exiting..."
-            exit 1
-          fi
-
-          CHANGED_FILES=$(echo "$CHANGED_FILES" | tr '\n' ' ' | sed 's/ /\n/g' | sort -u)
-          echo "CHANGED_FILES<<EOF" >> $GITHUB_ENV
-          echo "$CHANGED_FILES" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          echo "CHANGED_FILES=$(echo "$CHANGED_FILES" | xargs)" >> $GITHUB_ENV
 
       - name: Fail if More Than One Solution File Changed
         run: |
@@ -47,60 +36,32 @@ jobs:
           fi
 
       - name: Determine Language
-        id: determine-language
         run: |
-          DETECTED_LANGUAGES=""
           for file in $CHANGED_FILES; do
             case "$file" in
-              *.c) DETECTED_LANGUAGES="$DETECTED_LANGUAGES C";;
-              *.cpp) DETECTED_LANGUAGES="$DETECTED_LANGUAGES C++";;
-              *.py) DETECTED_LANGUAGES="$DETECTED_LANGUAGES Python";;
-              *.java) DETECTED_LANGUAGES="$DETECTED_LANGUAGES Java";;
+              *.c) echo "LANGUAGE=C" >> $GITHUB_ENV ;;
+              *.cpp) echo "LANGUAGE=C++" >> $GITHUB_ENV ;;
+              *.py) echo "LANGUAGE=Python" >> $GITHUB_ENV ;;
+              *.java) echo "LANGUAGE=Java" >> $GITHUB_ENV ;;
             esac
           done
 
-          DETECTED_LANGUAGES=$(echo "$DETECTED_LANGUAGES" | xargs | sort -u)
-          echo "LANGUAGE=$DETECTED_LANGUAGES" >> $GITHUB_ENV
-
-      - name: Debug Variables
+      - name: Install Dependencies
         run: |
-          echo "Changed files: $CHANGED_FILES"
-          echo "Detected languages: $LANGUAGE"
+          sudo apt update
+          case "$LANGUAGE" in
+            C) sudo apt install -y gcc ;;
+            C++) sudo apt install -y g++ ;;
+            Python) sudo apt install -y python3 ;;
+            Java) sudo apt install -y openjdk-17-jdk-headless ;;
+          esac
 
-      - name: Update Package Lists
-        if: contains(env.LANGUAGE, 'C') || contains(env.LANGUAGE, 'C++') || contains(env.LANGUAGE, 'Python') || contains(env.LANGUAGE, 'Java')
-        run: sudo apt update
-
-      - name: Install C Dependencies
-        if: contains(env.LANGUAGE, 'C')
-        run: sudo apt install -y gcc
-
-      - name: Install C++ Dependencies
-        if: contains(env.LANGUAGE, 'C++')
-        run: sudo apt install -y g++
-
-      - name: Install Python Dependencies
-        if: contains(env.LANGUAGE, 'Python')
-        run: sudo apt install -y python3
-
-      - name: Install Java Dependencies
-        if: contains(env.LANGUAGE, 'Java')
-        run: sudo apt install -y openjdk-17-jdk-headless
-
-      - name:name: Run C Tests
-        if: contains(env.LANGUAGE, 'C') && !contains(env.LANGUAGE, 'C++')
+      - name: Run C Tests
+        if: env.LANGUAGE == 'C'
         run: |
           for file in $CHANGED_FILES; do
-            if [ "$(realpath "$file")" != "$(realpath solutions/solution.c)" ]; then
-              mv "$file" solutions/solution.c
-            fi
+            mv "$file" solutions/solution.c
           done
-
-          if [ ! -f solutions/solution.c ]; then
-            echo "❌ solution.c not found after rename. Exiting."
-            exit 1
-          fi
-
           if [ -f tests/test.c ]; then
             gcc tests/test.c -o test_runner
             ./test_runner | tee -a test_results.log
@@ -108,24 +69,14 @@ jobs:
             echo "No C test file found."
           fi
 
-      - name: Compile and Run C++ Tests
-        if: contains(env.LANGUAGE, 'C++')
+      - name: Run C++ Tests
+        if: env.LANGUAGE == 'C++'
         run: |
           for file in $CHANGED_FILES; do
-            if [ "$(realpath "$file")" != "$(realpath solutions/solution.cpp)" ]; then
-              mv "$file" solutions/solution.cpp
-            fi
+            mv "$file" solutions/solution.cpp
           done
-
-          if [ ! -f solutions/solution.cpp ]; then
-            echo "❌ solution.cpp not found after rename. Exiting."
-            exit 1
-          fi
-
           if [ -f tests/test.cpp ]; then
-            echo "Compiling with g++ -std=c++17..."
             g++ -std=c++17 tests/test.cpp -o test_runner_cpp
-            echo "Running C++ Test Cases..."
             ./test_runner_cpp | tee -a test_results.log
           else
             echo "No C++ test file found."
@@ -135,42 +86,23 @@ jobs:
         if: env.LANGUAGE == 'Python'
         run: |
           for file in $CHANGED_FILES; do
-            if [ "$(realpath "$file")" != "$(realpath solutions/solution.py)" ]; then
-              mv "$file" solutions/solution.py
-            fi
+            mv "$file" solutions/solution.py
           done
-
-          if [ ! -f solutions/solution.py ]; then
-            echo "❌ solution.py not found after rename. Exiting."
-            exit 1
-          fi
-
           if [ -f tests/test.py ]; then
-            echo "Running Python Test Cases..."
             python3 tests/test.py | tee -a test_results.log
           else
             echo "No Python test file found."
           fi
 
-      - name: Compile and Run Java Tests
+      - name: Run Java Tests
         if: env.LANGUAGE == 'Java'
         run: |
           for file in $CHANGED_FILES; do
-            if [ "$(realpath "$file")" != "$(realpath solutions/Solution.java)" ]; then
-              mv "$file" solutions/Solution.java
-            fi
+            mv "$file" solutions/Solution.java
           done
-
-          if [ ! -f solutions/Solution.java ]; then
-            echo "❌ Solution.java not found after rename. Exiting."
-            exit 1
-          fi
-
           if [ -f tests/Test.java ]; then
             mkdir -p out
-            echo "Compiling Java test cases..."
             javac -d out tests/Test.java solutions/Solution.java
-            echo "Running Java Test Cases..."
             java -cp out tests.Test | tee -a test_results.log
           else
             echo "No Java test file found."
