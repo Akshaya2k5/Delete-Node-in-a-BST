@@ -7,7 +7,7 @@ class TreeNode:
 class Solution:
     def deleteNode(self, root, key): 
         if not root:
-            return None
+            return None 
         if key < root.val:
             root.left = self.deleteNode(root.left, key)
         elif key > root.val:
