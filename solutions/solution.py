@@ -4,7 +4,6 @@ class TreeNode:
         self.left = None
         self.right = None
 
-
 class Solution:
     def deleteNode(self, root, key):
         if not root:
