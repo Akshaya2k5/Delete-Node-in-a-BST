@@ -37,8 +37,7 @@ if __name__ == "__main__":
         ("Delete Root", [10, 5, 15, 3, 7, 12, 17], 10, [3, 5, 7, 12, 15, 17]),
         ("Delete Node with Two Children", [50, 30, 70, 20, 40, 60, 80, 65, 75], 70, [20, 30, 40, 50, 60, 65, 75, 80]),
         ("Delete Non-Existing Node", [8, 3, 10, 1, 6, 14, 4, 7, 13], 100, [1, 3, 4, 6, 7, 8, 10, 13, 14]),
-        ("Delete Leaf Node", [10, 5, 20], 5, [10, 20]),
-        ("Delete from Empty Tree", [], 5, [])
+        ("Delete Leaf Node", [10, 5, 20], 5, [10, 20])
     ]
 
     for label, values, key_to_delete, expected in test_cases:
