@@ -113,10 +113,10 @@ jobs:
           fi
 
           if [ -f tests/test.py ]; then
-            echo "Running Python Test Cases with pytest on test.py..."
-            PYTHONPATH=solutions pytest tests/test.py --tb=short -q
+            echo "Running Python tests without pytest..."
+            python3 tests/test.py
           else
-            echo "No pytest-compatible Python test file found."
+            echo "No Python test file found."
             exit 1
           fi
 
