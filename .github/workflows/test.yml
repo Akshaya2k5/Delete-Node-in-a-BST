@@ -52,7 +52,10 @@ jobs:
           case "$LANGUAGE" in
             C) sudo apt install -y gcc ;;
             C++) sudo apt install -y g++ ;;
-            Python) sudo apt install -y python3 ;;
+            Python) 
+              sudo apt install -y python3-pip 
+              pip install pytest
+              ;;
             Java) sudo apt install -y openjdk-17-jdk-headless ;;
           esac
 
@@ -79,8 +82,8 @@ jobs:
             echo "No C test file found."
           fi
 
-      - name: Compile and Run C++ Tests
-        if: contains(env.LANGUAGE, 'C++')
+      - name: Run C++ Tests
+        if: env.LANGUAGE == 'C++'
         run: |
           set -e
           for file in $CHANGED_FILES; do
@@ -89,20 +92,10 @@ jobs:
             fi
           done
 
-          if [ ! -f solutions/solution.cpp ]; then
-            echo "❌ solution.cpp not found after rename. Exiting."
-            exit 1
-          fi
-
-          if [ -f tests/test.cpp ]; then
-            echo "Compiling with g++ -std=c++17..."
-            g++ -std=c++17 tests/test.cpp -o test_runner_cpp
-            echo "Running C++ Test Cases..."
-            ./test_runner_cpp | tee -a test_results.log
-          else
-            echo "No C++ test file found."
-            exit 1
-          fi
+          echo "Compiling..."
+          g++ -std=c++17 tests/test.cpp -o test_bin
+          echo "Running..."
+          ./test_bin
 
       - name: Run Python Tests
         if: env.LANGUAGE == 'Python'
@@ -119,12 +112,11 @@ jobs:
             exit 1
           fi
 
-          if [ -f tests/test.py ]; then
-            echo "Running Python Test Cases..."
-            # Run python with solutions in PYTHONPATH so imports work
-            PYTHONPATH=$(pwd)/solutions python3 tests/test.py | tee -a test_results.log
+          if ls tests/test_*.py 1> /dev/null 2>&1; then
+            echo "Running Python Test Cases with pytest..."
+            PYTHONPATH=solutions pytest tests --tb=short -q
           else
-            echo "No Python test file found."
+            echo "No pytest-compatible Python test file found."
             exit 1
           fi
 

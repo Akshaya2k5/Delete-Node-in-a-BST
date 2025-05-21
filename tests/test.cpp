@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <vector>
+#include <cassert>
 #include "../solutions/solution.cpp"
 
 using namespace std;
@@ -14,15 +15,25 @@ TreeNode* insert(TreeNode* root, int val) {
     return root;
 }
 
-// Inorder traversal to print the BST
-void inorder(TreeNode* root) {
-    if (!root) return;
-    inorder(root->left);
-    cout << root->val << " ";
-    inorder(root->right);
+// Inorder traversal to return the BST as a vector
+vector<int> inorder(TreeNode* root) {
+    if (!root) return {};
+    vector<int> res;
+    vector<int> left = inorder(root->left);
+    vector<int> right = inorder(root->right);
+    res.insert(res.end(), left.begin(), left.end());
+    res.push_back(root->val);
+    res.insert(res.end(), right.begin(), right.end());
+    return res;
 }
 
-void runTestCase(string label, vector<int> values, int keyToDelete) {
+// Compare actual vs expected and assert
+void assertEqual(const vector<int>& actual, const vector<int>& expected, const string& label) {
+    assert(actual == expected && "❌ Test case failed");
+    cout << "✅ " << label << " passed.\n";
+}
+
+void runTestCase(string label, vector<int> values, int keyToDelete, const vector<int>& expected) {
     Solution sol;
     TreeNode* root = nullptr;
 
@@ -31,34 +42,22 @@ void runTestCase(string label, vector<int> values, int keyToDelete) {
         root = insert(root, val);
     }
 
-    cout << "\n" << label << "\n";
-    cout << "Original BST (inorder): ";
-    inorder(root);
-
     root = sol.deleteNode(root, keyToDelete);
 
-    cout << "\nBST after deleting " << keyToDelete << " (inorder): ";
-    inorder(root);
-    cout << "\n";
+    vector<int> result = inorder(root);
+    assertEqual(result, expected, label);
 }
 
 int main() {
-    // Basic Case
-    runTestCase("Basic Case", {5, 3, 6, 2, 4, 7}, 3);
+    runTestCase("Basic Case", {5, 3, 6, 2, 4, 7}, 3, {2, 4, 5, 6, 7});
 
-    // Moderate Case - Delete root
-    runTestCase("Moderate Case - Delete Root", {10, 5, 15, 3, 7, 12, 17}, 10);
+    runTestCase("Moderate Case - Delete Root", {10, 5, 15, 3, 7, 12, 17}, 10, {3, 5, 7, 12, 15, 17});
 
-    // Hard Case - Delete node with two children
-    runTestCase("Hard Case - Delete node with two children", {50, 30, 70, 20, 40, 60, 80, 65, 75}, 70);
+    runTestCase("Hard Case - Delete node with two children", {50, 30, 70, 20, 40, 60, 80, 65, 75}, 70, {20, 30, 40, 50, 60, 65, 75, 80});
 
-    // Edge Case - Delete non-existing node
-    runTestCase("Edge Case - Delete Non-existing Node", {8, 3, 10, 1, 6, 14, 4, 7, 13}, 100);
+    runTestCase("Edge Case - Delete Non-existing Node", {8, 3, 10, 1, 6, 14, 4, 7, 13}, 100, {1, 3, 4, 6, 7, 8, 10, 13, 14});
 
-    // Edge Case - Delete leaf node
-    runTestCase("Edge Case - Delete Leaf Node", {10, 5, 20}, 5);
+    runTestCase("Edge Case - Delete Leaf Node", {10, 5, 20}, 5, {10, 20});
 
-    // Edge Case - Delete from empty tree
-    runTestCase("Edge Case - Empty Tree", {}, 5);
-
+    runTestCase("Edge Case - Empty Tree", {}, 5, {});
 }
