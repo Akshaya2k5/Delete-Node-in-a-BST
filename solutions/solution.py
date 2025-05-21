@@ -15,7 +15,7 @@ class Solution:
         else:
             if not root.left:
                 return root.right
-            elif not root.right:
+            elif not root.right: 
                 return root.left
 
             min_larger_node = self.getMin(root.right)
