@@ -112,9 +112,9 @@ jobs:
             exit 1
           fi
 
-          if ls tests/test_*.py 1> /dev/null 2>&1; then
-            echo "Running Python Test Cases with pytest..."
-            PYTHONPATH=solutions pytest tests --tb=short -q
+          if [ -f tests/test.py ]; then
+            echo "Running Python Test Cases with pytest on test.py..."
+            PYTHONPATH=solutions pytest tests/test.py --tb=short -q
           else
             echo "No pytest-compatible Python test file found."
             exit 1

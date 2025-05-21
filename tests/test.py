@@ -18,6 +18,7 @@ def inorder(root):
 
 def build_bst(values):
     root = None
+    
     for v in values:
         root = insert(root, v)
     return root
