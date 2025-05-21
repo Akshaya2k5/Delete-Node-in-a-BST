@@ -5,7 +5,7 @@ class TreeNode:
         self.right = None
 
 class Solution:
-    def deleteNode(self, root, key):
+    def deleteNode(self, root, key): 
         if not root:
             return None
         if key < root.val:
