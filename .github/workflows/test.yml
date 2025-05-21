@@ -52,8 +52,8 @@ jobs:
           case "$LANGUAGE" in
             C) sudo apt install -y gcc ;;
             C++) sudo apt install -y g++ ;;
-            Python) 
-              sudo apt install -y python3-pip 
+            Python)
+              sudo apt install -y python3-pip
               pip install pytest
               ;;
             Java) sudo apt install -y openjdk-17-jdk-headless ;;
