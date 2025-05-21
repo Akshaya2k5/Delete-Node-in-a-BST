@@ -97,7 +97,7 @@ jobs:
           echo "Running..."
           ./test_bin
 
-      - name: Run Python Tests
+      - name: Run Python Tests (no pytest)
         if: env.LANGUAGE == 'Python'
         run: |
           set -e
@@ -113,10 +113,10 @@ jobs:
           fi
 
           if [ -f tests/test.py ]; then
-            echo "Running Python tests without pytest..."
+            echo "Running Python Test Cases..."
             python3 tests/test.py
           else
-            echo "No Python test file found."
+            echo "❌ test.py not found."
             exit 1
           fi
 

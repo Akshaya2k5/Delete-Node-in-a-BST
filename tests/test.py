@@ -21,24 +21,22 @@ def build_bst(values):
         root = insert(root, v)
     return root
 
-def run_test(label, values, key_to_delete, expected):
+def run_tests():
     sol = Solution()
-    root = build_bst(values)
-    root = sol.deleteNode(root, key_to_delete)
-    result = inorder(root)
-    if result == expected:
-        print(f"✅ {label} passed")
-    else:
-        print(f"❌ {label} failed: expected {expected}, got {result}")
-
-if __name__ == "__main__":
-    test_cases = [
+    tests = [
         ("Basic Case", [5, 3, 6, 2, 4, 7], 3, [2, 4, 5, 6, 7]),
         ("Delete Root", [10, 5, 15, 3, 7, 12, 17], 10, [3, 5, 7, 12, 15, 17]),
-        ("Delete Node with Two Children", [50, 30, 70, 20, 40, 60, 80, 65, 75], 70, [20, 30, 40, 50, 60, 65, 75, 80]),
-        ("Delete Non-Existing Node", [8, 3, 10, 1, 6, 14, 4, 7, 13], 100, [1, 3, 4, 6, 7, 8, 10, 13, 14]),
-        ("Delete Leaf Node", [10, 5, 20], 5, [10, 20])
+        ("Delete Non-Existing", [1, 2, 3], 100, [1, 2, 3]),
+        ("Delete from Empty", [], 1, [])
     ]
 
-    for label, values, key_to_delete, expected in test_cases:
-        run_test(label, values, key_to_delete, expected)
+    for label, values, key, expected in tests:
+        root = build_bst(values)
+        root = sol.deleteNode(root, key)
+        result = inorder(root)
+        assert result == expected, f"❌ {label} failed: expected {expected}, got {result}"
+
+    print("✅ All tests passed.")
+
+if __name__ == "__main__":
+    run_tests()
